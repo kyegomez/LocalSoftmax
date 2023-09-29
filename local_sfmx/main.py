@@ -193,18 +193,18 @@ def benchmark(func, tensor, num_iterations=10000):
     time_taken = timer.timeit(num_iterations)
     return time_taken
 
-tensor = torch.randn(1000)  # Random tensor of size 1000
+tensor = torch.randn(10000, 12, 12)  # Random tensor of size 1000
 
 # Benchmarking
 num_iterations = 10000
 
 # Benchmarking
 softmax_functions = [
-    standard_softmax,
+    # standard_softmax,
+    fast_softmax,
     selu_softmax,
     # sparsemax,
     local_softmax,
-    fast_softmax,
     sparse_softmax,
     gumbelmax,
     temp_softmax,
