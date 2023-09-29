@@ -10,7 +10,7 @@ Local Softmax parallelize the softmax computation by splitting the tensor into s
 
 
 # Install
-`pip install local-sftmx`
+`pip install local-sfmx`
 
 
 ## Usage
