@@ -7,7 +7,7 @@ import torch.nn.functional as F
 def standard_softmax(tensor):
     return F.softmax(tensor, dim=0)
 
-def local_softmax(tensor, num_chunks):
+def local_softmax(tensor, num_chunks: int = 2):
     #split the tensor into num chunks smaller tensor
     tensors = torch.chunk(tensor, num_chunks, dim=0)
 
@@ -68,8 +68,8 @@ tensor = torch.randn(1000)  # Random tensor of size 1000
 # Benchmarking
 num_iterations = 10000
 
-std_time = benchmark(standard_softmax, tensor, num_iterations)
-fast_time = benchmark(sparse_softmax, tensor, num_iterations)
+std_time = benchmark(fast_softmax, tensor, num_iterations)
+fast_time = benchmark(local_softmax, tensor, num_iterations)
 
 print(f"Standard Softmax: {std_time:.5f} seconds for {num_iterations} iterations")
 print(f"Fast Softmax: {fast_time:.5f} seconds for {num_iterations} iterations")
