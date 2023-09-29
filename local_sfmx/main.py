@@ -19,7 +19,7 @@ def selu_softmax(x):
     return F.softmax(scale * F.selu(x, alpha), dim=0)
 
 # 2. Sparsemax
-def sparsemax(x):
+def sparsemax(x, k):
     """
     sparsemax works by first sorting the input tensor in descending order and
     then applying the following formula to the sorted tensor:
@@ -36,16 +36,25 @@ def sparsemax(x):
     dim = 1
     number_of_logits = x.size(dim)
 
-    # Translate x by max for numerical stability
+    # Check if k is greater than the number of logits
+    if k > number_of_logits:
+        raise ValueError("k cannot be greater than the number of logits.")
+
     x = x - torch.max(x, dim=dim, keepdim=True).values
     sorted_x, _ = torch.sort(x, dim=dim, descending=True)
     cumulative_values = torch.cumsum(sorted_x, dim=dim) - 1
     range_values = torch.arange(start=1, end=number_of_logits + 1, device=x.device)
     bound = (sorted_x - cumulative_values / range_values) > 0
     rho = torch.count_nonzero(bound, dim=dim)
+
+    # Check if k is too large and adjust it
+    if k > rho.max():
+        k = rho.max().item()
+
     tau = cumulative_values.gather(dim, rho.unsqueeze(dim) - 1)
     tau /= rho.to(dtype=torch.float32)
     return torch.max(torch.zeros_like(x), x - tau.unsqueeze(dim)).view(original_size)
+
 
 # 3. Local Softmax
 def local_softmax(tensor, num_chunks: int = 2):
@@ -189,8 +198,25 @@ tensor = torch.randn(1000)  # Random tensor of size 1000
 # Benchmarking
 num_iterations = 10000
 
-std_time = benchmark(fast_softmax, tensor, num_iterations)
-fast_time = benchmark(gumbelmax, tensor, num_iterations)
+# Benchmarking
+softmax_functions = [
+    standard_softmax,
+    selu_softmax,
+    # sparsemax,
+    local_softmax,
+    fast_softmax,
+    sparse_softmax,
+    gumbelmax,
+    temp_softmax,
+    logit_scaled_softmax,
+    norm_exp_softmax
+]
 
-print(f"Standard Softmax: {std_time:.5f} seconds for {num_iterations} iterations")
-print(f"Fast Softmax: {fast_time:.5f} seconds for {num_iterations} iterations")
+results = {}
+for func in softmax_functions:
+    time_taken = benchmark(func, tensor, num_iterations)
+    results[func.__name__] = time_taken
+
+# Print results
+for func_name, time_taken in results.items():
+    print(f"{func_name}: {time_taken:.5f} seconds for {num_iterations} iterations")
