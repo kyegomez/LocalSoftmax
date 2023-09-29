@@ -1,5 +1,11 @@
-import torch 
+import timeit
+
+import torch
 import torch.nn.functional as F
+
+
+def standard_softmax(tensor):
+    return F.softmax(tensor, dim=0)
 
 def local_softmax(tensor, num_chunks):
     #split the tensor into num chunks smaller tensor
@@ -17,11 +23,51 @@ def local_softmax(tensor, num_chunks):
 
 
 def fast_softmax(tensor):
+    """
+    LogSumExp trick for numerical stability
+
+    tensor = torch.rand(10, 5)
+    result = fast_softmax(tensor)
+    print(result)
+    
+    """
     shiftx = tensor - torch.max(tensor)
 
     exps = torch.exp(shiftx)
 
     return exps / torch.sum(exps)
 
-tensor = torch.rand(10, 5)
-result = fast_softmax(tensor)
+def sparse_softmax(z, k: int = 3):
+    _, top_k_indices = z.topk(k, dim=0)
+    omega_k = top_k_indices
+
+    #compute sparse softmax transformation
+    exp_z = torch.exp(z)
+    masked_sum_exp = exp_z[omega_k].sum()
+    values = torch.zeros_like(z)
+    values[omega_k] = exp_z[omega_k] / masked_sum_exp
+
+    return values
+
+
+tensor = torch.randn(10, 5)
+result = sparse_softmax(tensor, k=3)
+print(f'result sparse softmax: {result}')
+
+
+# Benchmark function
+def benchmark(func, tensor, num_iterations=10000):
+    timer = timeit.Timer(lambda: func(tensor))
+    time_taken = timer.timeit(num_iterations)
+    return time_taken
+
+tensor = torch.randn(1000)  # Random tensor of size 1000
+
+# Benchmarking
+num_iterations = 10000
+
+std_time = benchmark(standard_softmax, tensor, num_iterations)
+fast_time = benchmark(sparse_softmax, tensor, num_iterations)
+
+print(f"Standard Softmax: {std_time:.5f} seconds for {num_iterations} iterations")
+print(f"Fast Softmax: {fast_time:.5f} seconds for {num_iterations} iterations")
