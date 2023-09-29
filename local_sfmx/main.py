@@ -14,4 +14,14 @@ def local_softmax(tensor, num_chunks):
     concated_results = torch.cat(results, dim=0)
 
     return concated_results
-n
+
+
+def fast_softmax(tensor):
+    shiftx = tensor - torch.max(tensor)
+
+    exps = torch.exp(shiftx)
+
+    return exps / torch.sum(exps)
+
+tensor = torch.rand(10, 5)
+result = fast_softmax(tensor)
