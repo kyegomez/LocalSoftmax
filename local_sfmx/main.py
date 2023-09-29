@@ -37,6 +37,8 @@ def fast_softmax(tensor):
 
     return exps / torch.sum(exps)
 
+
+
 def sparse_softmax(z, k: int = 3):
     _, top_k_indices = z.topk(k, dim=0)
     omega_k = top_k_indices
